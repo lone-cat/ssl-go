@@ -1,0 +1,7 @@
+#!/bin/bash
+
+cd src
+
+GOARCH=mips64 go build -o ../app && \
+
+cd ..

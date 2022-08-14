@@ -1,0 +1,33 @@
+version: "3.9"
+
+x-config:
+  user:
+    UID: &uid ${UID:?UID not set}
+    GID: &gid ${GID:?GID not set}
+  volumes:
+    app:
+      - &app
+        type: bind
+        source: ../
+        target: &working_dir_app /app
+
+services:
+  ssl:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+      args:
+        UID: *uid
+        GID: *gid
+    environment:
+      TZ: Europe/Moscow
+      APP_ENV: dev
+      APP_CONFIG_FOLDER: config
+    expose:
+      - 8080
+    ports:
+      - 80:8080
+    volumes:
+      - *app
+    working_dir: *working_dir_app
+    command: [ 'tail', '-f', '/etc/passwd' ]

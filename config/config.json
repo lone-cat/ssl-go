@@ -1,0 +1,21 @@
+{
+  "env": "dev",
+  "email": "",
+  "domains": [],
+  "port": 8080,
+  "keyLength": 4096,
+  "certDaysLeftMin": 30,
+  "useStaging": true,
+  "storage": {
+    "root": "certs",
+    "accountKey": "account.key",
+    "certificateKey": "certificate.key",
+    "certificates": {
+      "fullChain": "fullchain.pem",
+      "split": {
+        "certificate": "certificate.pem",
+        "intermediates": "intermediate{n}.pem"
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+#!/bin/bash
+
+. build
+
+APP_CONFIG_FOLDER=config ./app
