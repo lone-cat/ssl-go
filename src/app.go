@@ -44,7 +44,7 @@ func app(config config.ConfigInterface) error {
 
 	splitCertificateFilename := config.GetStorage().GetCertificatesSplitCertificateFullPath()
 	intermediateStoragePattern := config.GetStorage().GetCertificatesSplitIntermediateFullPattern()
-	if splitCertificateFilename != `` {
+	if splitCertificateFilename != `` && intermediateStoragePattern != `` {
 		certificateStorage, err := storage.NewByteFile(splitCertificateFilename, managers.DefaultCertificateFilePermissions)
 		if err != nil {
 			return err

@@ -22,15 +22,15 @@ func (c *Split) Validate() (errs []error) {
 }
 
 func (c *Split) validateCertificate() (errs []error) {
-	if c.Certificate == `` {
+	if c.Certificate == `` && c.Intermediates != `` {
 		errs = append(errs, errors.New(`empty certificate filename for split storage`))
 	}
 	return
 }
 
 func (c *Split) validateIntermediates() (errs []error) {
-	if c.Intermediates == `` {
-		errs = append(errs, errors.New(`empty Intermediates pattern for split storage`))
+	if c.Intermediates == `` && c.Certificate != `` {
+		errs = append(errs, errors.New(`empty intermediates pattern for split storage`))
 	}
 	return
 }
