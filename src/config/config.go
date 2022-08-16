@@ -13,6 +13,8 @@ type Config struct {
 	CertDaysLeftMin uint8    `json:"certDaysLeftMin"`
 	UseStaging      bool     `json:"useStaging"`
 	Storage         *Storage `json:"storage"`
+	formats         []SaveFormat
+	RawFormats      []json.RawMessage `json:"formats"`
 }
 
 func NewConfig(env string, appPath string) *Config {
@@ -69,8 +71,44 @@ func (c *Config) SetAppPath(appPath string) {
 	c.Storage.AppPath = appPath
 }
 
+func (c *Config) parseFormats() error {
+	c.formats = make([]SaveFormat, 0)
+	var err error
+	var data interface{}
+	var format SaveFormat
+	for _, rawJson := range c.RawFormats {
+		data = nil
+		err = json.Unmarshal(rawJson, &data)
+		if err != nil {
+			return err
+		}
+		format, err = convertFormat(data)
+		if err != nil {
+			return err
+		}
+		c.formats = append(c.formats, format)
+	}
+	return nil
+}
+
 func (c *Config) String() string {
-	jsonBytes, _ := json.MarshalIndent(c, ``, `  `)
+	startBytes, err := json.Marshal(c)
+	if err != nil {
+		return err.Error()
+	}
+	var dataMap map[string]interface{}
+	err = json.Unmarshal(startBytes, &dataMap)
+	if err != nil {
+		return err.Error()
+	}
+
+	dataMap[`formats`] = c.formats
+
+	jsonBytes, _ := json.MarshalIndent(dataMap, ``, `  `)
+	if err != nil {
+		return err.Error()
+	}
+
 	return string(jsonBytes)
 }
 

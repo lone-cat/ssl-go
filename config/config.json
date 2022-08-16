@@ -17,5 +17,26 @@
         "intermediates": "intermediate{n}.pem"
       }
     }
-  }
+  },
+  "formats": [
+    {
+      "filename": "abc/filename.pem"
+    },
+    {
+      "folder": "def",
+      "filename": "abc/filename.pem"
+    },
+    "/root/home/somefilename.pem",
+    {
+      "folder": "h",
+      "privateKeyFilename": "certificate.key",
+      "certificateFilename": "certificate.pem",
+      "intermediatePattern": "./intermediate{n}.pem"
+    },
+    {
+      "privateKeyFilename": "certificate.key",
+      "certificateFilename": "certificate.pem",
+      "intermediatePattern": "abc/intermediate{n}.pem"
+    }
+  ]
 }

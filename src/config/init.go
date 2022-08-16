@@ -48,6 +48,13 @@ func Initialize(envVarKeyEnvironment, envVarKeyConfigFolder string) (config Conf
 		return
 	}
 
+	err = conf.parseFormats()
+	if err != nil {
+		errs = append(errs, err)
+		logger.Infof("config final version:\n%s", conf)
+		return
+	}
+
 	logger.Infof("config final version:\n%s", conf)
 	errs = conf.Validate()
 	if len(errs) < 1 {
