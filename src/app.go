@@ -10,15 +10,15 @@ import (
 	"ssl/certs/converters"
 	"ssl/certs/legoadapter"
 	"ssl/certs/managers"
-	"ssl/certs/storage"
 	"ssl/certs/validations"
 	"ssl/config"
+	file2 "ssl/storage/file"
 	"strconv"
 	"time"
 )
 
 func app(config config.ConfigInterface) error {
-	certKeyStorage, err := storage.NewByteFile(config.GetStorage().GetCertificateKeyFullPath(), managers.DefaultPrivateKeyFilePermissions)
+	certKeyStorage, err := file2.NewByteFile(config.GetStorage().GetCertificateKeyFullPath(), managers.DefaultPrivateKeyFilePermissions)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func app(config config.ConfigInterface) error {
 	var certManagers []managers.CertificateManager
 	certificateFullChainFilename := config.GetStorage().GetCertificatesFullChainFullPath()
 	if certificateFullChainFilename != `` {
-		certificateStorage, err := storage.NewByteFile(certificateFullChainFilename, managers.DefaultCertificateFilePermissions)
+		certificateStorage, err := file2.NewByteFile(certificateFullChainFilename, managers.DefaultCertificateFilePermissions)
 		if err != nil {
 			return err
 		}
@@ -45,11 +45,11 @@ func app(config config.ConfigInterface) error {
 	splitCertificateFilename := config.GetStorage().GetCertificatesSplitCertificateFullPath()
 	intermediateStoragePattern := config.GetStorage().GetCertificatesSplitIntermediateFullPattern()
 	if splitCertificateFilename != `` && intermediateStoragePattern != `` {
-		certificateStorage, err := storage.NewByteFile(splitCertificateFilename, managers.DefaultCertificateFilePermissions)
+		certificateStorage, err := file2.NewByteFile(splitCertificateFilename, managers.DefaultCertificateFilePermissions)
 		if err != nil {
 			return err
 		}
-		intermediateStorage, err := storage.NewByteMultiFile(intermediateStoragePattern, managers.DefaultCertificateFilePermissions)
+		intermediateStorage, err := file2.NewByteMultiFile(intermediateStoragePattern, managers.DefaultCertificateFilePermissions)
 		if err != nil {
 			return err
 		}
@@ -132,7 +132,7 @@ func getNewCertificateBundle(accountKeyFilename string, keyLength uint16, email 
 }
 
 func getOrGenerateAccountKey(accountKeyFilename string, keyLength uint16) (key *rsa.PrivateKey, err error) {
-	accountKeyStorage, err := storage.NewByteFile(accountKeyFilename, managers.DefaultPrivateKeyFilePermissions)
+	accountKeyStorage, err := file2.NewByteFile(accountKeyFilename, managers.DefaultPrivateKeyFilePermissions)
 	if err != nil {
 		return
 	}

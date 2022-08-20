@@ -1,4 +1,4 @@
-package storage
+package file
 
 type byteMemory struct {
 	data []byte

@@ -23,3 +23,29 @@ func GetAppDir() (string, error) {
 
 	return path, nil
 }
+
+func Filter[T any](slice []T, filterFunc func(value T) bool) (filteredSlice []T) {
+	filteredSlice = make([]T, 0)
+	for _, val := range slice {
+		if filterFunc(val) {
+			filteredSlice = append(filteredSlice, val)
+		}
+	}
+
+	return
+}
+
+func Convert[T any, C any](slice []T, convertFunc func(T) (C, error)) (convertedSlice []C) {
+	var err error
+	var newVal C
+	convertedSlice = make([]C, 0)
+	for _, val := range slice {
+		newVal, err = convertFunc(val)
+		if err != nil {
+			continue
+		}
+		convertedSlice = append(convertedSlice, newVal)
+	}
+
+	return
+}

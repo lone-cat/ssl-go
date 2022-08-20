@@ -1,15 +1,16 @@
-package storage
+package file
 
 import (
 	"errors"
+	"ssl/storage"
 )
 
 type byteCacheWrapper struct {
 	cachedBytes    []byte
-	wrappedStorage Byte
+	wrappedStorage storage.Byte
 }
 
-func NewByteCacheWrapper(wrapStorage Byte) (*byteCacheWrapper, error) {
+func NewByteCacheWrapper(wrapStorage storage.Byte) (*byteCacheWrapper, error) {
 	if wrapStorage == nil {
 		return nil, errors.New(`nil storage passed`)
 	}

@@ -5,18 +5,19 @@ import (
 	"crypto/x509"
 	"errors"
 	"ssl/certs/converters"
-	"ssl/certs/storage"
+	storage2 "ssl/storage"
+	"ssl/storage/file"
 )
 
 type certificateSplitChainManager struct {
 	*abstractCertificateManager
-	certificateStorage storage.Byte
-	caStorage          storage.ByteMulti
+	certificateStorage storage2.Byte
+	caStorage          storage2.ByteMulti
 }
 
 func NewCertificateSplitChainManager(
-	certificateStorage storage.Byte,
-	caStorage storage.ByteMulti,
+	certificateStorage storage2.Byte,
+	caStorage storage2.ByteMulti,
 ) (mgr *certificateSplitChainManager, err error) {
 	if certificateStorage == nil {
 		err = errors.New(`nil certificate storage passed`)
@@ -68,7 +69,7 @@ func (m *certificateSplitChainManager) Set(certs []*x509.Certificate) (err error
 func (m *certificateSplitChainManager) load() (certs []*x509.Certificate, err error) {
 	certBytes, err := m.certificateStorage.Load()
 	if err != nil {
-		if errors.Is(err, storage.NoData) {
+		if errors.Is(err, file.NoData) {
 			err = nil
 		}
 		return
@@ -80,7 +81,7 @@ func (m *certificateSplitChainManager) load() (certs []*x509.Certificate, err er
 
 	intermediateBytes, err := m.caStorage.Load()
 	if err != nil {
-		if errors.Is(err, storage.NoData) {
+		if errors.Is(err, file.NoData) {
 			err = nil
 		}
 		return

@@ -1,4 +1,4 @@
-package storage
+package file
 
 func bytesEqual(data1 []byte, data2 []byte) bool {
 	return string(data1) == string(data2)

@@ -5,7 +5,8 @@ import (
 	"crypto/x509"
 	"errors"
 	"ssl/certs/converters"
-	"ssl/certs/storage"
+	"ssl/storage"
+	"ssl/storage/file"
 )
 
 type certificateChainManager struct {
@@ -59,7 +60,7 @@ func (m *certificateChainManager) Set(certs []*x509.Certificate) (err error) {
 func (m *certificateChainManager) load() (certs []*x509.Certificate, err error) {
 	certBytes, err := m.certificateStorage.Load()
 	if err != nil {
-		if errors.Is(err, storage.NoData) {
+		if errors.Is(err, file.NoData) {
 			err = nil
 		}
 		return

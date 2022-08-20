@@ -4,8 +4,9 @@ import (
 	"crypto/rsa"
 	"errors"
 	"ssl/certs/converters"
-	"ssl/certs/storage"
 	"ssl/certs/validations"
+	"ssl/storage"
+	"ssl/storage/file"
 )
 
 const (
@@ -40,7 +41,7 @@ func NewRSAPrivateKeyManager(storage storage.Byte) (mgr *rsaPrivateKeyManager, e
 func (m *rsaPrivateKeyManager) init() (err error) {
 	keyBytes, err := m.storage.Load()
 	if err != nil {
-		if errors.Is(err, storage.NoData) {
+		if errors.Is(err, file.NoData) {
 			err = nil
 		}
 		return

@@ -6,39 +6,67 @@ import (
 	"errors"
 )
 
-func ConvertCertificatesToPemBytes(certificates []*x509.Certificate) ([][]byte, error) {
-	bts := make([][]byte, 0)
-	for _, cert := range certificates {
-		pemBlock := &pem.Block{Type: `CERTIFICATE`, Bytes: cert.Raw}
-		btsBlock := pem.EncodeToMemory(pemBlock)
-		if btsBlock == nil {
-			return nil, errors.New(`certificate to bytes encoding failed`)
-		}
-		bts = append(bts, btsBlock)
+func CertificateToPEMBlock(certificate *x509.Certificate) (pemBlock *pem.Block, err error) {
+	if certificate == nil {
+		err = errors.New(`nil certificate passed`)
+		return
 	}
-	return bts, nil
+
+	pemBlock = &pem.Block{Type: `CERTIFICATE`, Bytes: certificate.Raw}
+
+	return
 }
 
-func ConvertPemBytesToCertificates(bts []byte) (certs []*x509.Certificate, err error) {
-	left := bts
-	certs = make([]*x509.Certificate, 0)
+func CertificatesToPEMBlocks(certificates []*x509.Certificate) (pemBlocks []*pem.Block, errs []error) {
+	pemBlocks = make([]*pem.Block, 0)
+	var err error
+	if certificates == nil {
+		err = errors.New(`nil certificates slice passed`)
+		errs = append(errs, err)
+		return
+	}
 
-	var block *pem.Block
-	var cert *x509.Certificate
-	for {
-		block, left = pem.Decode(left)
-		if block == nil {
-			break
-		}
-		cert, err = x509.ParseCertificate(block.Bytes)
+	var pemBlock *pem.Block
+	for _, certificate := range certificates {
+		pemBlock, err = CertificateToPEMBlock(certificate)
 		if err != nil {
-			return
+			errs = append(errs, err)
+			continue
 		}
-		if cert == nil {
-			err = errors.New(`nil certificate got from bytes`)
-			return
+		pemBlocks = append(pemBlocks, pemBlock)
+	}
+
+	return
+}
+
+func PEMBlockToCertificate(pemBlock *pem.Block) (certificate *x509.Certificate, err error) {
+	if pemBlock.Type != `CERTIFICATE` {
+		err = errors.New(`not certificate block found`)
+		return
+	}
+
+	certificate, err = x509.ParseCertificate(pemBlock.Bytes)
+
+	return
+}
+
+func PEMBlocksToCertificates(pemBlocks []*pem.Block) (certificates []*x509.Certificate, errs []error) {
+	certificates = make([]*x509.Certificate, 0)
+	var err error
+	if pemBlocks == nil {
+		err = errors.New(`nil certificates slice passed`)
+		errs = append(errs, err)
+		return
+	}
+
+	var certificate *x509.Certificate
+	for _, pemBlock := range pemBlocks {
+		certificate, err = PEMBlockToCertificate(pemBlock)
+		if err != nil {
+			errs = append(errs, err)
+			continue
 		}
-		certs = append(certs, cert)
+		certificates = append(certificates, certificate)
 	}
 
 	return

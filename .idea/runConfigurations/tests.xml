@@ -1,0 +1,11 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="tests" type="GoTestRunConfiguration" factoryName="Go Test">
+    <module name="ssl-go" />
+    <working_directory value="$PROJECT_DIR$/src/certs" />
+    <kind value="DIRECTORY" />
+    <directory value="$PROJECT_DIR$/src/certs" />
+    <filePath value="$PROJECT_DIR$" />
+    <framework value="gotest" />
+    <method v="2" />
+  </configuration>
+</component>

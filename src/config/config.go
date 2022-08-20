@@ -5,23 +5,22 @@ import (
 )
 
 type Config struct {
-	Env             string   `json:"env"`
-	Email           string   `json:"email"`
-	Domains         []string `json:"domains"`
-	Port            uint16   `json:"port"`
-	KeyLength       uint16   `json:"keyLength"`
-	CertDaysLeftMin uint8    `json:"certDaysLeftMin"`
-	UseStaging      bool     `json:"useStaging"`
-	Storage         *Storage `json:"storage"`
-	formats         []SaveFormat
-	RawFormats      []json.RawMessage `json:"formats"`
+	Env             string       `json:"env"`
+	Email           string       `json:"email"`
+	Domains         []string     `json:"domains"`
+	Port            uint16       `json:"port"`
+	KeyLength       uint16       `json:"keyLength"`
+	CertDaysLeftMin uint8        `json:"certDaysLeftMin"`
+	UseStaging      bool         `json:"useStaging"`
+	AppPath         string       `json:"appPath"`
+	SaveFormats     []SaveFormat `json:"formats"`
 }
 
 func NewConfig(env string, appPath string) *Config {
 	return &Config{
 		Env:        env,
 		UseStaging: true,
-		Storage:    NewStorage(appPath),
+		AppPath:    appPath,
 	}
 }
 
@@ -59,36 +58,16 @@ func (c *Config) GetUseStaging() bool {
 	return c.UseStaging
 }
 
-func (c *Config) GetStorage() StorageInterface {
-	return c.Storage
+func (c *Config) GetSaveFormats() []SaveFormat {
+	return c.SaveFormats
 }
 
 func (c *Config) GetAppPath() string {
-	return c.Storage.AppPath
+	return c.AppPath
 }
 
 func (c *Config) SetAppPath(appPath string) {
-	c.Storage.AppPath = appPath
-}
-
-func (c *Config) parseFormats() error {
-	c.formats = make([]SaveFormat, 0)
-	var err error
-	var data interface{}
-	var format SaveFormat
-	for _, rawJson := range c.RawFormats {
-		data = nil
-		err = json.Unmarshal(rawJson, &data)
-		if err != nil {
-			return err
-		}
-		format, err = convertFormat(data)
-		if err != nil {
-			return err
-		}
-		c.formats = append(c.formats, format)
-	}
-	return nil
+	c.AppPath = appPath
 }
 
 func (c *Config) String() string {
@@ -102,7 +81,7 @@ func (c *Config) String() string {
 		return err.Error()
 	}
 
-	dataMap[`formats`] = c.formats
+	dataMap[`SaveFormats`] = c.SaveFormats
 
 	jsonBytes, _ := json.MarshalIndent(dataMap, ``, `  `)
 	if err != nil {
@@ -118,6 +97,6 @@ func (c *Config) Validate() (errs []error) {
 	errs = append(errs, c.validateDomains()...)
 	errs = append(errs, c.validatePort()...)
 	errs = append(errs, c.validateKeyLength()...)
-	errs = append(errs, c.validateStorage()...)
+	errs = append(errs, c.validateSaveFormats()...)
 	return
 }

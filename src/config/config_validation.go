@@ -72,11 +72,14 @@ func (c *Config) validateKeyLength() (errs []error) {
 	return
 }
 
-func (c *Config) validateStorage() (errs []error) {
-	if c.Storage == nil {
-		errs = append(errs, errors.New(`storage config not filled`))
-	} else {
-		errs = c.Storage.Validate()
+func (c *Config) validateSaveFormats() (errs []error) {
+	for _, format := range c.SaveFormats {
+		if format == nil {
+			errs = append(errs, errors.New(`nil format passed`))
+			continue
+		}
+		ers := format.Validate()
+		errs = append(errs, ers...)
 	}
 	return
 }
