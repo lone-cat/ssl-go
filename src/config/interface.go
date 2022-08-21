@@ -9,4 +9,5 @@ type ConfigInterface interface {
 	GetCertDaysLeftMin() int
 	GetUseStaging() bool
 	GetSaveFormats() []SaveFormat
+	updateFormatFolders()
 }

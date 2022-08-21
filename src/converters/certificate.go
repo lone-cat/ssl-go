@@ -41,7 +41,7 @@ func CertificatesToPEMBlocks(certificates []*x509.Certificate) (pemBlocks []*pem
 
 func PEMBlockToCertificate(pemBlock *pem.Block) (certificate *x509.Certificate, err error) {
 	if pemBlock.Type != `CERTIFICATE` {
-		err = errors.New(`not certificate block found`)
+		err = errors.New(`not certificate block`)
 		return
 	}
 

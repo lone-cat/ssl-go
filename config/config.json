@@ -23,10 +23,9 @@
       "filename": "abc/filename.pem"
     },
     {
-      "folder": "def",
+      "folder": "/def",
       "filename": "abc/filename.pem"
     },
-    "/root/home/somefilename.pem",
     {
       "folder": "h",
       "privateKeyFilename": "certificate.key",

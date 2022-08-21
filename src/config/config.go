@@ -2,18 +2,19 @@ package config
 
 import (
 	"encoding/json"
+	"path/filepath"
 )
 
 type Config struct {
-	Env             string       `json:"env"`
-	Email           string       `json:"email"`
-	Domains         []string     `json:"domains"`
-	Port            uint16       `json:"port"`
-	KeyLength       uint16       `json:"keyLength"`
-	CertDaysLeftMin uint8        `json:"certDaysLeftMin"`
-	UseStaging      bool         `json:"useStaging"`
-	AppPath         string       `json:"appPath"`
-	SaveFormats     []SaveFormat `json:"formats"`
+	Env             string        `json:"env"`
+	Email           string        `json:"email"`
+	Domains         []string      `json:"domains"`
+	Port            uint16        `json:"port"`
+	KeyLength       uint16        `json:"keyLength"`
+	CertDaysLeftMin uint8         `json:"certDaysLeftMin"`
+	UseStaging      bool          `json:"useStaging"`
+	AppPath         string        `json:"appPath"`
+	SaveFormats     []*saveFormat `json:"formats"`
 }
 
 func NewConfig(env string, appPath string) *Config {
@@ -59,7 +60,16 @@ func (c *Config) GetUseStaging() bool {
 }
 
 func (c *Config) GetSaveFormats() []SaveFormat {
-	return c.SaveFormats
+	if c.SaveFormats == nil {
+		return nil
+	}
+
+	formats := make([]SaveFormat, len(c.SaveFormats))
+	for _, format := range c.SaveFormats {
+		formats = append(formats, format)
+	}
+
+	return formats
 }
 
 func (c *Config) GetAppPath() string {
@@ -68,6 +78,14 @@ func (c *Config) GetAppPath() string {
 
 func (c *Config) SetAppPath(appPath string) {
 	c.AppPath = appPath
+}
+
+func (c *Config) updateFormatFolders() {
+	for _, format := range c.SaveFormats {
+		if !filepath.IsAbs(format.Folder) {
+			format.Folder = filepath.Join(c.AppPath, format.Folder)
+		}
+	}
 }
 
 func (c *Config) String() string {

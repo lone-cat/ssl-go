@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"os"
 	"ssl/common"
 )
@@ -40,12 +39,7 @@ func Initialize(envVarKeyEnvironment, envVarKeyConfigFolder string) (config Conf
 		return
 	}
 
-	err = cleanFolders(conf)
-	if err != nil {
-		errs = append(errs, err)
-		logger.Infof("config final version:\n%s", conf)
-		return
-	}
+	conf.updateFormatFolders()
 
 	logger.Infof("config final version:\n%s", conf)
 	errs = conf.Validate()
@@ -55,12 +49,4 @@ func Initialize(envVarKeyEnvironment, envVarKeyConfigFolder string) (config Conf
 	}
 
 	return
-}
-
-func cleanFolders(conf *Config) error {
-	if conf == nil {
-		return errors.New(`nil config passed`)
-	}
-
-	return nil
 }

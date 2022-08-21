@@ -73,6 +73,15 @@ func (c *Config) validateKeyLength() (errs []error) {
 }
 
 func (c *Config) validateSaveFormats() (errs []error) {
+	if len(c.SaveFormats) < 1 {
+		err := errors.New(`less than 1 format passed`)
+		errs = append(errs, err)
+		return
+	}
+
+	err := c.SaveFormats[0].ValidateMain()
+	errs = append(errs, err)
+
 	for _, format := range c.SaveFormats {
 		if format == nil {
 			errs = append(errs, errors.New(`nil format passed`))
@@ -81,5 +90,6 @@ func (c *Config) validateSaveFormats() (errs []error) {
 		ers := format.Validate()
 		errs = append(errs, ers...)
 	}
+
 	return
 }

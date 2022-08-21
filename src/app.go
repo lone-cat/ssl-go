@@ -3,22 +3,15 @@ package main
 import (
 	"crypto/rsa"
 	"crypto/x509"
-	"github.com/go-acme/lego/v4/challenge/http01"
 	"github.com/go-acme/lego/v4/lego"
-	"path/filepath"
 	"ssl/certs"
-	"ssl/certs/converters"
-	"ssl/certs/legoadapter"
-	"ssl/certs/managers"
-	"ssl/certs/validations"
 	"ssl/config"
-	file2 "ssl/storage/file"
-	"strconv"
-	"time"
+	"ssl/legoadapter"
 )
 
 func app(config config.ConfigInterface) error {
-	certKeyStorage, err := file2.NewByteFile(config.GetStorage().GetCertificateKeyFullPath(), managers.DefaultPrivateKeyFilePermissions)
+	return nil
+	/*certKeyStorage, err := file.NewByteFile(config.GetStorage().GetCertificateKeyFullPath(), managers.DefaultPrivateKeyFilePermissions)
 	if err != nil {
 		return err
 	}
@@ -31,7 +24,7 @@ func app(config config.ConfigInterface) error {
 	var certManagers []managers.CertificateManager
 	certificateFullChainFilename := config.GetStorage().GetCertificatesFullChainFullPath()
 	if certificateFullChainFilename != `` {
-		certificateStorage, err := file2.NewByteFile(certificateFullChainFilename, managers.DefaultCertificateFilePermissions)
+		certificateStorage, err := file.NewByteFile(certificateFullChainFilename, managers.DefaultCertificateFilePermissions)
 		if err != nil {
 			return err
 		}
@@ -45,11 +38,11 @@ func app(config config.ConfigInterface) error {
 	splitCertificateFilename := config.GetStorage().GetCertificatesSplitCertificateFullPath()
 	intermediateStoragePattern := config.GetStorage().GetCertificatesSplitIntermediateFullPattern()
 	if splitCertificateFilename != `` && intermediateStoragePattern != `` {
-		certificateStorage, err := file2.NewByteFile(splitCertificateFilename, managers.DefaultCertificateFilePermissions)
+		certificateStorage, err := file.NewByteFile(splitCertificateFilename, managers.DefaultCertificateFilePermissions)
 		if err != nil {
 			return err
 		}
-		intermediateStorage, err := file2.NewByteMultiFile(intermediateStoragePattern, managers.DefaultCertificateFilePermissions)
+		intermediateStorage, err := file.NewByteMultiFile(intermediateStoragePattern, managers.DefaultCertificateFilePermissions)
 		if err != nil {
 			return err
 		}
@@ -107,7 +100,7 @@ func app(config config.ConfigInterface) error {
 	} else {
 		logger.Infof(`certificate bundle is ok`)
 		return NoChangeError
-	}
+	}*/
 }
 
 func getNewCertificateBundle(accountKeyFilename string, keyLength uint16, email string, domains []string, port int, useStagingCA bool) (key *rsa.PrivateKey, certificates []*x509.Certificate, err error) {
@@ -132,7 +125,7 @@ func getNewCertificateBundle(accountKeyFilename string, keyLength uint16, email 
 }
 
 func getOrGenerateAccountKey(accountKeyFilename string, keyLength uint16) (key *rsa.PrivateKey, err error) {
-	accountKeyStorage, err := file2.NewByteFile(accountKeyFilename, managers.DefaultPrivateKeyFilePermissions)
+	/*accountKeyStorage, err := file.NewByteFile(accountKeyFilename, managers.DefaultPrivateKeyFilePermissions)
 	if err != nil {
 		return
 	}
@@ -154,7 +147,7 @@ func getOrGenerateAccountKey(accountKeyFilename string, keyLength uint16) (key *
 			return
 		}
 	}
-
+	*/
 	return
 }
 
@@ -176,7 +169,7 @@ func getConnectedClient(accountKey *rsa.PrivateKey, email string, useStagingCA b
 }
 
 func getCertificates(client *lego.Client, key *rsa.PrivateKey, domains []string, port int) (certificates []*x509.Certificate, err error) {
-	err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer(``, strconv.Itoa(port)))
+	/*err = client.Challenge.SetHTTP01Provider(http01.NewProviderServer(``, strconv.Itoa(port)))
 	if err != nil {
 		return
 	}
@@ -190,6 +183,6 @@ func getCertificates(client *lego.Client, key *rsa.PrivateKey, domains []string,
 	if err != nil {
 		return
 	}
-
+	*/
 	return
 }
