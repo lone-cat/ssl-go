@@ -8,6 +8,7 @@ type ConfigInterface interface {
 	GetKeyLength() uint16
 	GetCertDaysLeftMin() int
 	GetUseStaging() bool
+	GetAccountKeyFilename() string
 	GetSaveFormats() []SaveFormat
 	updateFormatFolders()
 }

@@ -5,14 +5,6 @@ import (
 	"crypto/rsa"
 )
 
-type RSA interface {
-	*rsa.PrivateKey
-}
-
-type EC interface {
-	*ecdsa.PrivateKey
-}
-
 type Private interface {
-	RSA | EC
+	*rsa.PrivateKey | *ecdsa.PrivateKey
 }

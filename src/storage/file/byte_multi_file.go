@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"ssl/storage"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -60,7 +61,7 @@ func (s *byteMultiFile) Load() (bts [][]byte, err error) {
 	}
 
 	if bts == nil {
-		err = NoData
+		err = storage.NoData
 	}
 
 	return

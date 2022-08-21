@@ -3,6 +3,7 @@ package file
 import (
 	"os"
 	"path/filepath"
+	"ssl/storage"
 	"strconv"
 	"strings"
 	"testing"
@@ -82,7 +83,7 @@ func TestByteMultiFile_Load(t *testing.T) {
 
 func TestByteMultiFile_Save(t *testing.T) {
 	_, err := saveMultiFileStore.Load()
-	if err != NoData {
+	if err != storage.NoData {
 		t.Fatal(err)
 	}
 
@@ -132,7 +133,7 @@ func TestByteMultiFile_Delete(t *testing.T) {
 	}
 
 	_, err = saveMultiFileStore.Load()
-	if err != NoData {
+	if err != storage.NoData {
 		t.Fatal(err)
 	}
 }

@@ -3,7 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"regexp"
+	"ssl/common"
 )
 
 const emailWordSymbols = `[a-z0-9!#$%&'*+/=?^_{|}~-]+`
@@ -72,6 +74,22 @@ func (c *Config) validateKeyLength() (errs []error) {
 	return
 }
 
+func (c *Config) validateAccountKeyFilename() (errs []error) {
+	if c.AccountKeyFilename == `` {
+		errs = append(errs, errors.New(`no account key passed`))
+		return
+	}
+
+	path := filepath.Dir(c.GetAccountKeyFilename())
+
+	exists, _ := common.DirectoryExists(path)
+	if !exists {
+		errs = append(errs, errors.New(fmt.Sprintf(`folder "%s" does not exist`, path)))
+	}
+
+	return
+}
+
 func (c *Config) validateSaveFormats() (errs []error) {
 	if len(c.SaveFormats) < 1 {
 		err := errors.New(`less than 1 format passed`)
@@ -80,7 +98,9 @@ func (c *Config) validateSaveFormats() (errs []error) {
 	}
 
 	err := c.SaveFormats[0].ValidateMain()
-	errs = append(errs, err)
+	if err != nil {
+		errs = append(errs, err)
+	}
 
 	for _, format := range c.SaveFormats {
 		if format == nil {

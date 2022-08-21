@@ -6,15 +6,16 @@ import (
 )
 
 type Config struct {
-	Env             string        `json:"env"`
-	Email           string        `json:"email"`
-	Domains         []string      `json:"domains"`
-	Port            uint16        `json:"port"`
-	KeyLength       uint16        `json:"keyLength"`
-	CertDaysLeftMin uint8         `json:"certDaysLeftMin"`
-	UseStaging      bool          `json:"useStaging"`
-	AppPath         string        `json:"appPath"`
-	SaveFormats     []*saveFormat `json:"formats"`
+	Env                string        `json:"env"`
+	Email              string        `json:"email"`
+	Domains            []string      `json:"domains"`
+	Port               uint16        `json:"port"`
+	KeyLength          uint16        `json:"keyLength"`
+	CertDaysLeftMin    uint8         `json:"certDaysLeftMin"`
+	UseStaging         bool          `json:"useStaging"`
+	AppPath            string        `json:"appPath"`
+	AccountKeyFilename string        `json:"accountKeyFilename"`
+	SaveFormats        []*saveFormat `json:"saveFormats"`
 }
 
 func NewConfig(env string, appPath string) *Config {
@@ -59,12 +60,24 @@ func (c *Config) GetUseStaging() bool {
 	return c.UseStaging
 }
 
+func (c *Config) GetAccountKeyFilename() string {
+	if c.AccountKeyFilename == `` {
+		return ``
+	}
+
+	if filepath.IsAbs(c.AccountKeyFilename) {
+		return filepath.Clean(c.AccountKeyFilename)
+	}
+
+	return filepath.Join(c.AppPath, c.AccountKeyFilename)
+}
+
 func (c *Config) GetSaveFormats() []SaveFormat {
 	if c.SaveFormats == nil {
 		return nil
 	}
 
-	formats := make([]SaveFormat, len(c.SaveFormats))
+	formats := make([]SaveFormat, 0)
 	for _, format := range c.SaveFormats {
 		formats = append(formats, format)
 	}
@@ -115,6 +128,7 @@ func (c *Config) Validate() (errs []error) {
 	errs = append(errs, c.validateDomains()...)
 	errs = append(errs, c.validatePort()...)
 	errs = append(errs, c.validateKeyLength()...)
+	errs = append(errs, c.validateAccountKeyFilename()...)
 	errs = append(errs, c.validateSaveFormats()...)
 	return
 }

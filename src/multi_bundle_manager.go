@@ -12,7 +12,7 @@ type MultiBundleManager[T keytype.Private] struct {
 	bundleManagers []managers.Bundle[T]
 }
 
-func GenerateMultiBundleManagerFromFormatsSlice[T keytype.RSA](saveFormats []config.SaveFormat) (mgr *MultiBundleManager[T], err error) {
+func GenerateMultiBundleManagerFromFormatsSlice[T keytype.Private](saveFormats []config.SaveFormat) (mgr *MultiBundleManager[T], err error) {
 	var mgrs []managers.Bundle[T]
 	var bundleManager managers.Bundle[T]
 	for _, saveFormat := range saveFormats {
