@@ -3,9 +3,9 @@ package main
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"errors"
 	"github.com/go-acme/lego/v4/challenge/http01"
 	"github.com/go-acme/lego/v4/lego"
-	"path/filepath"
 	"ssl/certs"
 	"ssl/config"
 	"ssl/converters"
@@ -34,7 +34,7 @@ func app(config config.ConfigInterface) (err error) {
 		logger.Error(err)
 
 		certKey, certificateChain, err = getNewCertificateBundle(
-			filepath.Join(config.GetAccountKeyFilename()),
+			config.GetAccountKeyFilename(),
 			config.GetKeyLength(),
 			config.GetEmail(),
 			config.GetDomains(),
@@ -93,7 +93,10 @@ func getOrGenerateAccountKey(accountKeyFilename string, keyLength uint16) (key *
 
 	key, err = mgr.Get()
 	if err != nil {
-		return
+		if !errors.Is(err, storage.NoData) {
+			return
+		}
+		err = nil
 	}
 
 	if key == nil || validations.GetRSAPrivateKeyLengthError(key, int(keyLength)) != nil {

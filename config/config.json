@@ -11,7 +11,12 @@
     {
       "folder": "certs",
       "privateKey": "certificate.key",
-      "certificateChain": "fullchain.pem"
+      "certificate": "certificate.pem",
+      "certificateChain": "fullchain.pem",
+      "intermediate": "intermediate.pem",
+      "intermediatePattern": "intermediate{n}.pem",
+      "privateKeyAndCertificate": "keycert.pem",
+      "allInOne": "all.pem"
     }
   ]
 }
