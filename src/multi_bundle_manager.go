@@ -113,7 +113,42 @@ func (m *MultiBundleManager[T]) Sync() (err error) {
 				return
 			}
 			continue
+		}
 
+		curCert, _ := mgr.GetCertificate()
+
+		if curCert == nil && mgr.ShouldHaveCertificate() {
+			err = mgr.Set(key, certs)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		if curCert != nil && !certs[0].Equal(curCert) {
+			err = mgr.Set(key, certs)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		curIntermediates, _ := mgr.GetIntermediates()
+
+		if curIntermediates == nil && mgr.ShouldHaveIntermediates() {
+			err = mgr.Set(key, certs)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		if curIntermediates != nil && !managers.CertsBundlesEqual(certs[1:], curIntermediates) {
+			err = mgr.Set(key, certs)
+			if err != nil {
+				return
+			}
+			continue
 		}
 
 	}
@@ -121,12 +156,16 @@ func (m *MultiBundleManager[T]) Sync() (err error) {
 	return
 }
 
-func (m *MultiBundleManager[T]) GetPrivateKey() (key T, err error) {
+func (m *MultiBundleManager[T]) GetPrivateKey() (T, error) {
 	return m.bundleManagers[0].GetPrivateKey()
 }
 
-func (m *MultiBundleManager[T]) GetCertificates() (certificates []*x509.Certificate, err error) {
-	return m.bundleManagers[0].GetCertificates()
+func (m *MultiBundleManager[T]) GetCertificate() (*x509.Certificate, error) {
+	return m.bundleManagers[0].GetCertificate()
+}
+
+func (m *MultiBundleManager[T]) GetIntermediates() ([]*x509.Certificate, error) {
+	return m.bundleManagers[0].GetIntermediates()
 }
 
 func (m *MultiBundleManager[T]) Get() (key T, certificates []*x509.Certificate, err error) {

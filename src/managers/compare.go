@@ -2,6 +2,7 @@ package managers
 
 import (
 	"crypto"
+	"crypto/x509"
 	"ssl/keytype"
 )
 
@@ -25,4 +26,17 @@ func keysEqual(key1raw, key2raw crypto.PrivateKey) bool {
 	}
 
 	return comparableKey1.Equal(key2raw)
+}
+
+func CertsBundlesEqual(certs1bundle, certs2bundle []*x509.Certificate) bool {
+	if len(certs1bundle) != len(certs2bundle) {
+		return false
+	}
+	for i := range certs1bundle {
+		if !certs1bundle[i].Equal(certs1bundle[i]) {
+			return false
+		}
+	}
+
+	return true
 }

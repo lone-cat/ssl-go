@@ -11,12 +11,14 @@ import (
 
 type Bundle[T keytype.Private] interface {
 	GetPrivateKey() (T, error)
-	GetCertificates() ([]*x509.Certificate, error)
+	GetCertificate() (*x509.Certificate, error)
+	GetIntermediates() ([]*x509.Certificate, error)
 	Get() (T, []*x509.Certificate, error)
 	Set(T, []*x509.Certificate) error
 	NeedSync() bool
 	ShouldHavePrivateKey() bool
 	ShouldHaveCertificate() bool
+	ShouldHaveIntermediates() bool
 }
 
 type bundle[T keytype.Private] struct {
@@ -54,7 +56,11 @@ func (m *bundle[T]) ShouldHavePrivateKey() bool {
 }
 
 func (m *bundle[T]) ShouldHaveCertificate() bool {
-	return m.privateKeyStorage != nil || m.privateKeyAndCertificateStorage != nil || m.allInOneStorage != nil
+	return m.certificateStorage != nil || m.privateKeyAndCertificateStorage != nil || m.certificateChainStorage != nil || m.allInOneStorage != nil
+}
+
+func (m *bundle[T]) ShouldHaveIntermediates() bool {
+	return m.certificateChainStorage != nil || m.allInOneStorage != nil || m.intermediateStorage != nil || m.intermediateMultiStorage != nil
 }
 
 func (m *bundle[T]) NeedSync() bool {
@@ -67,8 +73,107 @@ func (m *bundle[T]) NeedSync() bool {
 			}
 		}
 	}
+	certsBundles := m.getCertificatesBundles()
+	if certsBundles != nil && len(certsBundles) > 1 {
+		certs := certsBundles[0]
+		for _, certs2 := range certsBundles[1:] {
+			if !CertsBundlesEqual(certs, certs2) {
+				return true
+			}
+		}
+	}
+	certsBundles = m.getIntermediatesBundles()
+	if certsBundles != nil && len(certsBundles) > 1 {
+		certs := certsBundles[0]
+		for _, certs2 := range certsBundles[1:] {
+			if !CertsBundlesEqual(certs, certs2) {
+				return true
+			}
+		}
+	}
 
 	return false
+}
+
+func (m *bundle[T]) GetPrivateKey() (key T, err error) {
+	keys := m.getPrivateKeysFromPemStorage(m.privateKeyStorage)
+	if len(keys) > 0 {
+		key = keys[0]
+		return
+	}
+
+	keys = m.getPrivateKeysFromPemStorage(m.privateKeyAndCertificateStorage)
+	if len(keys) > 0 {
+		key = keys[0]
+		return
+	}
+
+	keys = m.getPrivateKeysFromPemStorage(m.allInOneStorage)
+	if len(keys) > 0 {
+		key = keys[0]
+		return
+	}
+
+	return
+}
+
+func (m *bundle[T]) GetCertificate() (certificate *x509.Certificate, err error) {
+	certs := getCertificatesFromPemStorageIfNotNil(m.certificateStorage)
+	if len(certs) > 0 {
+		certificate = certs[0]
+		return
+	}
+
+	certs = getCertificatesFromPemStorageIfNotNil(m.privateKeyAndCertificateStorage)
+	if len(certs) > 0 {
+		certificate = certs[0]
+		return
+	}
+
+	certs = getCertificatesFromPemStorageIfNotNil(m.certificateChainStorage)
+	if len(certs) > 0 {
+		certificate = certs[0]
+		return
+
+	}
+
+	certs = getCertificatesFromPemStorageIfNotNil(m.allInOneStorage)
+	if len(certs) > 0 {
+		certificate = certs[0]
+	}
+
+	return
+}
+
+func (m *bundle[T]) GetIntermediates() (intermediate []*x509.Certificate, err error) {
+	intermediate = make([]*x509.Certificate, 0)
+	certs := getCertificatesFromPemStorageIfNotNil(m.intermediateStorage)
+	if certs != nil {
+		intermediate = certs
+		return
+	}
+
+	certs = getCertificatesFromPemStorageIfNotNil(m.intermediateMultiStorage)
+	if certs != nil {
+		intermediate = certs
+		return
+	}
+
+	certs = getCertificatesFromPemStorageIfNotNil(m.certificateChainStorage)
+	if certs != nil {
+		intermediate = make([]*x509.Certificate, len(certs)-1)
+		copy(intermediate, certs)
+		return
+	}
+
+	certs = getCertificatesFromPemStorageIfNotNil(m.allInOneStorage)
+	if certs != nil {
+		intermediate = make([]*x509.Certificate, len(certs)-1)
+		copy(intermediate, certs)
+		return
+	}
+
+	return
 }
 
 func (m *bundle[T]) Get() (key T, certificates []*x509.Certificate, err error) {
@@ -77,10 +182,19 @@ func (m *bundle[T]) Get() (key T, certificates []*x509.Certificate, err error) {
 		return
 	}
 
-	certificates, err = m.GetCertificates()
+	certificate, err := m.GetCertificate()
 	if err != nil {
 		return
 	}
+
+	certificates = append(certificates, certificate)
+
+	intermediate, err := m.GetIntermediates()
+	if err != nil {
+		return
+	}
+
+	certificates = append(certificates, intermediate...)
 
 	return
 }
@@ -138,28 +252,6 @@ func (m *bundle[T]) Set(key T, certificates []*x509.Certificate) (err error) {
 	return
 }
 
-func (m *bundle[T]) GetPrivateKey() (key T, err error) {
-	keys := m.getPrivateKeysFromPemStorage(m.privateKeyStorage)
-	if len(keys) > 0 {
-		key = keys[0]
-		return
-	}
-
-	keys = m.getPrivateKeysFromPemStorage(m.privateKeyAndCertificateStorage)
-	if len(keys) > 0 {
-		key = keys[0]
-		return
-	}
-
-	keys = m.getPrivateKeysFromPemStorage(m.allInOneStorage)
-	if len(keys) > 0 {
-		key = keys[0]
-		return
-	}
-
-	return
-}
-
 func (m *bundle[T]) getPrivateKeysBundles(storages ...storage.Pem) (keysBundles [][]T) {
 	var keys []T
 	for _, store := range storages {
@@ -172,35 +264,69 @@ func (m *bundle[T]) getPrivateKeysBundles(storages ...storage.Pem) (keysBundles 
 	return keysBundles
 }
 
-func (m *bundle[T]) GetCertificates() (certificates []*x509.Certificate, err error) {
-	certChain := getCertificatesFromPemStorageIfNotNil(m.certificateChainStorage)
-	if len(certChain) > 0 {
-		certificates = certChain
-		return
+func (m *bundle[T]) getCertificatesBundles() (certificatesBundles [][]*x509.Certificate) {
+	var certs, tmp []*x509.Certificate
+	certs = getCertificatesFromPemStorageIfNotNil(m.certificateStorage)
+	if certs != nil {
+		certificatesBundles = append(certificatesBundles, certs)
 	}
-
-	certChain = getCertificatesFromPemStorageIfNotNil(m.allInOneStorage)
-	if len(certChain) > 0 {
-		certificates = certChain
-		return
+	certs = getCertificatesFromPemStorageIfNotNil(m.privateKeyAndCertificateStorage)
+	if certs != nil {
+		certificatesBundles = append(certificatesBundles, certs)
 	}
-
-	certs := getCertificatesFromPemStorageIfNotNil(m.certificateStorage)
-	if len(certs) < 1 {
-		certs = getCertificatesFromPemStorageIfNotNil(m.privateKeyAndCertificateStorage)
-		if len(certs) < 1 {
-			return
+	certs = getCertificatesFromPemStorageIfNotNil(m.certificateChainStorage)
+	if certs != nil {
+		if len(certs) > 0 {
+			tmp = make([]*x509.Certificate, 1)
+			copy(tmp, certs)
+		} else {
+			tmp = make([]*x509.Certificate, 0)
 		}
+		certificatesBundles = append(certificatesBundles, tmp)
+	}
+	certs = getCertificatesFromPemStorageIfNotNil(m.allInOneStorage)
+	if certs != nil {
+		if len(certs) > 0 {
+			tmp = make([]*x509.Certificate, 1)
+			copy(tmp, certs)
+		} else {
+			tmp = make([]*x509.Certificate, 0)
+		}
+		certificatesBundles = append(certificatesBundles, tmp)
 	}
 
-	intermediate := getCertificatesFromPemStorageIfNotNil(m.intermediateStorage)
-	if len(intermediate) < 1 {
-		intermediate = getCertificatesFromPemStorageIfNotNil(m.intermediateMultiStorage)
-	}
+	return
+}
 
-	certificates = certs
-	if len(intermediate) > 0 {
-		certificates = append(certificates, intermediate...)
+func (m *bundle[T]) getIntermediatesBundles() (certificatesBundles [][]*x509.Certificate) {
+	var certs, tmp []*x509.Certificate
+	certs = getCertificatesFromPemStorageIfNotNil(m.intermediateStorage)
+	if certs != nil {
+		certificatesBundles = append(certificatesBundles, certs)
+	}
+	certs = getCertificatesFromPemStorageIfNotNil(m.intermediateMultiStorage)
+	if certs != nil {
+		certificatesBundles = append(certificatesBundles, certs)
+	}
+	certs = getCertificatesFromPemStorageIfNotNil(m.certificateChainStorage)
+	if certs != nil {
+		if len(certs) > 0 {
+			tmp = make([]*x509.Certificate, len(certs)-1)
+			copy(tmp, certs[1:])
+		} else {
+			tmp = make([]*x509.Certificate, 0)
+		}
+		certificatesBundles = append(certificatesBundles, tmp)
+	}
+	certs = getCertificatesFromPemStorageIfNotNil(m.allInOneStorage)
+	if certs != nil {
+		if len(certs) > 0 {
+			tmp = make([]*x509.Certificate, len(certs)-1)
+			copy(tmp, certs[1:])
+		} else {
+			tmp = make([]*x509.Certificate, 0)
+		}
+		certificatesBundles = append(certificatesBundles, tmp)
 	}
 
 	return
