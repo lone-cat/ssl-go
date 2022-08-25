@@ -43,25 +43,30 @@ func NewByteMultiFile(filenamePattern string, permissions os.FileMode) (store *b
 }
 
 func (s *byteMultiFile) Load() (bts [][]byte, err error) {
+	bts = make([][]byte, 0)
+
 	s.storages, err = getStorageArrayByPattern(s.folder, s.fileMatchPattern, s.permissions)
 	if err != nil {
 		return
 	}
 
+	if len(s.storages) < 1 {
+		return
+	}
+
 	var fileBytes []byte
-	for _, storage := range s.storages {
-		fileBytes, err = storage.Load()
+	for _, store := range s.storages {
+		fileBytes, err = store.Load()
 		if err != nil {
+			if errors.Is(err, storage.EmptyNode) {
+				continue
+			}
 			return
 		}
 
 		if len(fileBytes) > 0 {
 			bts = append(bts, fileBytes)
 		}
-	}
-
-	if bts == nil {
-		err = storage.NoData
 	}
 
 	return
@@ -96,8 +101,8 @@ func (s *byteMultiFile) Delete() (err error) {
 		return
 	}
 
-	for _, storage := range s.storages {
-		err = storage.Delete()
+	for _, store := range s.storages {
+		err = store.Delete()
 		if err != nil {
 			return
 		}
@@ -167,18 +172,18 @@ func getStorageArrayByPattern(folder string, pattern *regexp.Regexp, permissions
 	}
 
 	var filename string
-	var storage *byteFile
+	var store *byteFile
 	for _, file := range files {
 		if file.IsDir() {
 			continue
 		}
 		filename = file.Name()
 		if pattern.MatchString(filename) {
-			storage, err = NewByteFile(filepath.Join(folder, filename), permissions)
+			store, err = NewByteFile(filepath.Join(folder, filename), permissions)
 			if err != nil {
 				return
 			}
-			storages = append(storages, storage)
+			storages = append(storages, store)
 		}
 	}
 

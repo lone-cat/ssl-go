@@ -36,12 +36,15 @@ func (m *privateKey[T]) Get() (key T, err error) {
 		return
 	}
 
-	keys, _ := converters.PEMBlocksToPrivateKeys[T](pemBlocks)
-	if len(keys) < 1 {
-		err = errors.New(`no private keys found`)
+	keys, errs := converters.PEMBlocksToPrivateKeys[T](pemBlocks)
+	if len(errs) > 0 {
+		err = errors.New(`error getting private key`)
 		return
 	}
-	key = keys[0]
+
+	if len(keys) > 0 {
+		key = keys[0]
+	}
 
 	return
 }

@@ -24,12 +24,16 @@ func NewByteSingleFileAdapter(byteStorage Byte) (store *byteSingleFileAdapter, e
 }
 
 func (s *byteSingleFileAdapter) Load() (bts [][]byte, err error) {
+	bts = make([][]byte, 0)
 	bytesRaw, err := s.byte.Load()
 	if err != nil {
+		if errors.Is(err, EmptyNode) {
+			err = nil
+		}
 		return
 	}
 
-	bts = [][]byte{bytesRaw}
+	bts = append(bts, bytesRaw)
 
 	return
 }

@@ -62,7 +62,7 @@ func TestByteFile_Load(t *testing.T) {
 
 func TestByteFile_Save(t *testing.T) {
 	_, err := saveFileStore.Load()
-	if err != storage.NoData {
+	if err != storage.EmptyNode {
 		t.Fatal(`test file exists`)
 	}
 

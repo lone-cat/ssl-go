@@ -44,7 +44,7 @@ func (s *byteFile) Load() (bts []byte, err error) {
 	bts, err = os.ReadFile(s.filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = storage.NoData
+			err = storage.EmptyNode
 		}
 	}
 

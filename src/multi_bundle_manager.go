@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto"
 	"crypto/x509"
 	"errors"
 	"ssl/config"
@@ -66,6 +67,66 @@ func NewMultiBundleManager[T keytype.Private](bundleManagers []managers.Bundle[T
 	copy(mgr.bundleManagers, bundleManagers)
 
 	return
+}
+
+func (m *MultiBundleManager[T]) Sync() (err error) {
+	key, certs, _ := m.bundleManagers[0].Get()
+
+	if key == nil || len(certs) < 1 {
+		return
+	}
+
+	keyComparable, ok := any(key).(interface{ Equal(crypto.PrivateKey) bool })
+	if !ok {
+		return errors.New(`incomparable key`)
+	}
+
+	if m.bundleManagers[0].NeedSync() {
+		err = m.bundleManagers[0].Set(key, certs)
+		if err != nil {
+			return
+		}
+	}
+
+	for _, mgr := range m.bundleManagers[1:] {
+		if mgr.NeedSync() {
+			err = mgr.Set(key, certs)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		curKey, _ := mgr.GetPrivateKey()
+
+		if curKey == nil && mgr.ShouldHavePrivateKey() {
+			err = mgr.Set(key, certs)
+			if err != nil {
+				return
+			}
+			continue
+		}
+
+		if curKey != nil && !keyComparable.Equal(curKey) {
+			err = mgr.Set(key, certs)
+			if err != nil {
+				return
+			}
+			continue
+
+		}
+
+	}
+
+	return
+}
+
+func (m *MultiBundleManager[T]) GetPrivateKey() (key T, err error) {
+	return m.bundleManagers[0].GetPrivateKey()
+}
+
+func (m *MultiBundleManager[T]) GetCertificates() (certificates []*x509.Certificate, err error) {
+	return m.bundleManagers[0].GetCertificates()
 }
 
 func (m *MultiBundleManager[T]) Get() (key T, certificates []*x509.Certificate, err error) {

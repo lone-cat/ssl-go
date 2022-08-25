@@ -10,8 +10,13 @@ import (
 )
 
 type Bundle[T keytype.Private] interface {
+	GetPrivateKey() (T, error)
+	GetCertificates() ([]*x509.Certificate, error)
 	Get() (T, []*x509.Certificate, error)
 	Set(T, []*x509.Certificate) error
+	NeedSync() bool
+	ShouldHavePrivateKey() bool
+	ShouldHaveCertificate() bool
 }
 
 type bundle[T keytype.Private] struct {
@@ -44,13 +49,35 @@ func NewBundle[T keytype.Private](
 	}
 }
 
+func (m *bundle[T]) ShouldHavePrivateKey() bool {
+	return m.privateKeyStorage != nil || m.privateKeyAndCertificateStorage != nil || m.allInOneStorage != nil
+}
+
+func (m *bundle[T]) ShouldHaveCertificate() bool {
+	return m.privateKeyStorage != nil || m.privateKeyAndCertificateStorage != nil || m.allInOneStorage != nil
+}
+
+func (m *bundle[T]) NeedSync() bool {
+	keyBundles := m.getPrivateKeysBundles(m.privateKeyStorage, m.privateKeyAndCertificateStorage, m.allInOneStorage)
+	if keyBundles != nil && len(keyBundles) > 1 {
+		keys := keyBundles[0]
+		for _, keys2 := range keyBundles[1:] {
+			if !keyBundlesEqual(keys, keys2) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 func (m *bundle[T]) Get() (key T, certificates []*x509.Certificate, err error) {
-	key, err = m.getPrivateKey()
+	key, err = m.GetPrivateKey()
 	if err != nil {
 		return
 	}
 
-	certificates, err = m.getCertificateChain()
+	certificates, err = m.GetCertificates()
 	if err != nil {
 		return
 	}
@@ -73,37 +100,37 @@ func (m *bundle[T]) Set(key T, certificates []*x509.Certificate) (err error) {
 	pemBlocks = append(pemBlocks, keyPemBlock)
 	pemBlocks = append(pemBlocks, certificateChainBlocks...)
 
-	err = m.savePemBlocksToStorageIfNotNil(m.allInOneStorage, pemBlocks)
+	err = savePemBlocksToStorageIfNotNil(m.allInOneStorage, pemBlocks)
 	if err != nil {
 		return
 	}
 
-	err = m.savePemBlocksToStorageIfNotNil(m.privateKeyStorage, pemBlocks[:1])
+	err = savePemBlocksToStorageIfNotNil(m.privateKeyStorage, pemBlocks[:1])
 	if err != nil {
 		return
 	}
 
-	err = m.savePemBlocksToStorageIfNotNil(m.certificateStorage, pemBlocks[1:2])
+	err = savePemBlocksToStorageIfNotNil(m.certificateStorage, pemBlocks[1:2])
 	if err != nil {
 		return
 	}
 
-	err = m.savePemBlocksToStorageIfNotNil(m.certificateChainStorage, pemBlocks[1:])
+	err = savePemBlocksToStorageIfNotNil(m.certificateChainStorage, pemBlocks[1:])
 	if err != nil {
 		return
 	}
 
-	err = m.savePemBlocksToStorageIfNotNil(m.privateKeyAndCertificateStorage, pemBlocks[:2])
+	err = savePemBlocksToStorageIfNotNil(m.privateKeyAndCertificateStorage, pemBlocks[:2])
 	if err != nil {
 		return
 	}
 
-	err = m.savePemBlocksToStorageIfNotNil(m.intermediateStorage, pemBlocks[2:])
+	err = savePemBlocksToStorageIfNotNil(m.intermediateStorage, pemBlocks[2:])
 	if err != nil {
 		return
 	}
 
-	err = m.savePemBlocksToStorageIfNotNil(m.intermediateMultiStorage, pemBlocks[2:])
+	err = savePemBlocksToStorageIfNotNil(m.intermediateMultiStorage, pemBlocks[2:])
 	if err != nil {
 		return
 	}
@@ -111,20 +138,20 @@ func (m *bundle[T]) Set(key T, certificates []*x509.Certificate) (err error) {
 	return
 }
 
-func (m *bundle[T]) getPrivateKey() (key T, err error) {
-	keys := m.getRSAPrivateKeysFromPemStorage(m.privateKeyStorage)
+func (m *bundle[T]) GetPrivateKey() (key T, err error) {
+	keys := m.getPrivateKeysFromPemStorage(m.privateKeyStorage)
 	if len(keys) > 0 {
 		key = keys[0]
 		return
 	}
 
-	keys = m.getRSAPrivateKeysFromPemStorage(m.privateKeyAndCertificateStorage)
+	keys = m.getPrivateKeysFromPemStorage(m.privateKeyAndCertificateStorage)
 	if len(keys) > 0 {
 		key = keys[0]
 		return
 	}
 
-	keys = m.getRSAPrivateKeysFromPemStorage(m.allInOneStorage)
+	keys = m.getPrivateKeysFromPemStorage(m.allInOneStorage)
 	if len(keys) > 0 {
 		key = keys[0]
 		return
@@ -133,30 +160,42 @@ func (m *bundle[T]) getPrivateKey() (key T, err error) {
 	return
 }
 
-func (m *bundle[T]) getCertificateChain() (certificates []*x509.Certificate, err error) {
-	certChain := m.getCertificatesFromPemStorage(m.certificateChainStorage)
+func (m *bundle[T]) getPrivateKeysBundles(storages ...storage.Pem) (keysBundles [][]T) {
+	var keys []T
+	for _, store := range storages {
+		keys = m.getPrivateKeysFromPemStorage(store)
+		if keys != nil {
+			keysBundles = append(keysBundles, keys)
+		}
+	}
+
+	return keysBundles
+}
+
+func (m *bundle[T]) GetCertificates() (certificates []*x509.Certificate, err error) {
+	certChain := getCertificatesFromPemStorageIfNotNil(m.certificateChainStorage)
 	if len(certChain) > 0 {
 		certificates = certChain
 		return
 	}
 
-	certChain = m.getCertificatesFromPemStorage(m.allInOneStorage)
+	certChain = getCertificatesFromPemStorageIfNotNil(m.allInOneStorage)
 	if len(certChain) > 0 {
 		certificates = certChain
 		return
 	}
 
-	certs := m.getCertificatesFromPemStorage(m.certificateStorage)
+	certs := getCertificatesFromPemStorageIfNotNil(m.certificateStorage)
 	if len(certs) < 1 {
-		certs = m.getCertificatesFromPemStorage(m.privateKeyAndCertificateStorage)
+		certs = getCertificatesFromPemStorageIfNotNil(m.privateKeyAndCertificateStorage)
 		if len(certs) < 1 {
 			return
 		}
 	}
 
-	intermediate := m.getCertificatesFromPemStorage(m.intermediateStorage)
+	intermediate := getCertificatesFromPemStorageIfNotNil(m.intermediateStorage)
 	if len(intermediate) < 1 {
-		intermediate = m.getCertificatesFromPemStorage(m.intermediateMultiStorage)
+		intermediate = getCertificatesFromPemStorageIfNotNil(m.intermediateMultiStorage)
 	}
 
 	certificates = certs
@@ -167,7 +206,7 @@ func (m *bundle[T]) getCertificateChain() (certificates []*x509.Certificate, err
 	return
 }
 
-func (m *bundle[T]) getRSAPrivateKeysFromPemStorage(store storage.Pem) (keys []T) {
+func (m *bundle[T]) getPrivateKeysFromPemStorage(store storage.Pem) (keys []T) {
 	if store == nil {
 		return
 	}
@@ -182,7 +221,7 @@ func (m *bundle[T]) getRSAPrivateKeysFromPemStorage(store storage.Pem) (keys []T
 	return
 }
 
-func (m *bundle[T]) getCertificatesFromPemStorage(store storage.Pem) (certificates []*x509.Certificate) {
+func getCertificatesFromPemStorageIfNotNil(store storage.Pem) (certificates []*x509.Certificate) {
 	if store == nil {
 		return
 	}
@@ -197,7 +236,7 @@ func (m *bundle[T]) getCertificatesFromPemStorage(store storage.Pem) (certificat
 	return
 }
 
-func (m *bundle[T]) savePemBlocksToStorageIfNotNil(store storage.Pem, pemBlocks []*pem.Block) (err error) {
+func savePemBlocksToStorageIfNotNil(store storage.Pem, pemBlocks []*pem.Block) (err error) {
 	if store != nil {
 		err = store.Save(pemBlocks)
 	}

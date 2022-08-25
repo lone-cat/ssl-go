@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/rsa"
 	"crypto/x509"
-	"errors"
 	"github.com/go-acme/lego/v4/challenge/http01"
 	"github.com/go-acme/lego/v4/lego"
 	"ssl/certs"
@@ -19,6 +18,11 @@ import (
 
 func app(config config.ConfigInterface) (err error) {
 	bundleManager, err := GenerateMultiBundleManagerFromFormatsSlice[*rsa.PrivateKey](config.GetSaveFormats())
+	if err != nil {
+		return
+	}
+
+	err = bundleManager.Sync()
 	if err != nil {
 		return
 	}
@@ -93,10 +97,7 @@ func getOrGenerateAccountKey(accountKeyFilename string, keyLength uint16) (key *
 
 	key, err = mgr.Get()
 	if err != nil {
-		if !errors.Is(err, storage.NoData) {
-			return
-		}
-		err = nil
+		return
 	}
 
 	if key == nil || validations.GetRSAPrivateKeyLengthError(key, int(keyLength)) != nil {
