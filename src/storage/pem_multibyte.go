@@ -28,6 +28,10 @@ func (s *pemMultibyte) Load() (pemBlocks []*pem.Block, err error) {
 		return
 	}
 
+	if data == nil {
+		return
+	}
+
 	pemBlocks, err = BytesSliceToPEMBlocks(data)
 
 	return

@@ -43,8 +43,6 @@ func NewByteMultiFile(filenamePattern string, permissions os.FileMode) (store *b
 }
 
 func (s *byteMultiFile) Load() (bts [][]byte, err error) {
-	bts = make([][]byte, 0)
-
 	s.storages, err = getStorageArrayByPattern(s.folder, s.fileMatchPattern, s.permissions)
 	if err != nil {
 		return
@@ -54,6 +52,7 @@ func (s *byteMultiFile) Load() (bts [][]byte, err error) {
 		return
 	}
 
+	bts = make([][]byte, 0)
 	var fileBytes []byte
 	for _, store := range s.storages {
 		fileBytes, err = store.Load()

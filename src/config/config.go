@@ -102,19 +102,7 @@ func (c *Config) updateFormatFolders() {
 }
 
 func (c *Config) String() string {
-	startBytes, err := json.Marshal(c)
-	if err != nil {
-		return err.Error()
-	}
-	var dataMap map[string]interface{}
-	err = json.Unmarshal(startBytes, &dataMap)
-	if err != nil {
-		return err.Error()
-	}
-
-	dataMap[`SaveFormats`] = c.SaveFormats
-
-	jsonBytes, _ := json.MarshalIndent(dataMap, ``, `  `)
+	jsonBytes, err := json.MarshalIndent(c, ``, `  `)
 	if err != nil {
 		return err.Error()
 	}

@@ -146,7 +146,6 @@ func (m *bundle[T]) GetCertificate() (certificate *x509.Certificate, err error) 
 }
 
 func (m *bundle[T]) GetIntermediates() (intermediate []*x509.Certificate, err error) {
-	intermediate = make([]*x509.Certificate, 0)
 	certs := getCertificatesFromPemStorageIfNotNil(m.intermediateStorage)
 	if certs != nil {
 		intermediate = certs
@@ -342,6 +341,10 @@ func (m *bundle[T]) getPrivateKeysFromPemStorage(store storage.Pem) (keys []T) {
 		return
 	}
 
+	if pemBlocks == nil {
+		return
+	}
+
 	keys, _ = converters.PEMBlocksToPrivateKeys[T](pemBlocks)
 
 	return
@@ -354,6 +357,10 @@ func getCertificatesFromPemStorageIfNotNil(store storage.Pem) (certificates []*x
 
 	pemBlocks, err := store.Load()
 	if err != nil {
+		return
+	}
+
+	if pemBlocks == nil {
 		return
 	}
 

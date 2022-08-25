@@ -33,8 +33,15 @@ func (s *byteCacheWrapper) Load() (data []byte, err error) {
 		if err != nil {
 			return
 		}
-		s.cachedBytes = make([]byte, len(bts))
-		copy(s.cachedBytes, bts)
+
+		if bts != nil {
+			s.cachedBytes = make([]byte, len(bts))
+			copy(s.cachedBytes, bts)
+		}
+	}
+
+	if s.cachedBytes == nil {
+		return
 	}
 
 	data = make([]byte, len(s.cachedBytes))
