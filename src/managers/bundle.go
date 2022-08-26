@@ -73,6 +73,21 @@ func (m *bundle[T]) NeedSync() bool {
 			}
 		}
 	}
+	var keyBundlesCount int
+	if m.privateKeyStorage != nil {
+		keyBundlesCount++
+	}
+	if m.privateKeyAndCertificateStorage != nil {
+		keyBundlesCount++
+	}
+	if m.allInOneStorage != nil {
+		keyBundlesCount++
+	}
+
+	if keyBundlesCount != len(keyBundles) {
+		return true
+	}
+
 	certsBundles := m.getCertificatesBundles()
 	if certsBundles != nil && len(certsBundles) > 1 {
 		certs := certsBundles[0]
@@ -82,6 +97,25 @@ func (m *bundle[T]) NeedSync() bool {
 			}
 		}
 	}
+
+	var certsBundlesCount int
+	if m.certificateStorage != nil {
+		certsBundlesCount++
+	}
+	if m.privateKeyAndCertificateStorage != nil {
+		certsBundlesCount++
+	}
+	if m.certificateChainStorage != nil {
+		certsBundlesCount++
+	}
+	if m.allInOneStorage != nil {
+		certsBundlesCount++
+	}
+
+	if certsBundlesCount != len(certsBundles) {
+		return true
+	}
+
 	certsBundles = m.getIntermediatesBundles()
 	if certsBundles != nil && len(certsBundles) > 1 {
 		certs := certsBundles[0]
@@ -90,6 +124,24 @@ func (m *bundle[T]) NeedSync() bool {
 				return true
 			}
 		}
+	}
+
+	var intermediateBundlesCount int
+	if m.intermediateStorage != nil {
+		intermediateBundlesCount++
+	}
+	if m.intermediateMultiStorage != nil {
+		intermediateBundlesCount++
+	}
+	if m.certificateChainStorage != nil {
+		intermediateBundlesCount++
+	}
+	if m.allInOneStorage != nil {
+		intermediateBundlesCount++
+	}
+
+	if intermediateBundlesCount != len(certsBundles) {
+		return true
 	}
 
 	return false
@@ -147,29 +199,35 @@ func (m *bundle[T]) GetCertificate() (certificate *x509.Certificate, err error) 
 
 func (m *bundle[T]) GetIntermediates() (intermediate []*x509.Certificate, err error) {
 	certs := getCertificatesFromPemStorageIfNotNil(m.intermediateStorage)
-	if certs != nil {
+	if certs != nil && (intermediate == nil || len(certs) > len(intermediate)) {
 		intermediate = certs
-		return
 	}
 
 	certs = getCertificatesFromPemStorageIfNotNil(m.intermediateMultiStorage)
-	if certs != nil {
+	if certs != nil && (intermediate == nil || len(certs) > len(intermediate)) {
 		intermediate = certs
-		return
 	}
 
 	certs = getCertificatesFromPemStorageIfNotNil(m.certificateChainStorage)
 	if certs != nil {
-		intermediate = make([]*x509.Certificate, len(certs)-1)
-		copy(intermediate, certs)
-		return
+		if len(certs) > 0 {
+			certs = certs[1:]
+		}
+		if intermediate == nil || len(certs) > len(intermediate) {
+			intermediate = make([]*x509.Certificate, len(certs))
+			copy(intermediate, certs)
+		}
 	}
 
 	certs = getCertificatesFromPemStorageIfNotNil(m.allInOneStorage)
 	if certs != nil {
-		intermediate = make([]*x509.Certificate, len(certs)-1)
-		copy(intermediate, certs)
-		return
+		if len(certs) > 0 {
+			certs = certs[1:]
+		}
+		if intermediate == nil || len(certs) > len(intermediate) {
+			intermediate = make([]*x509.Certificate, len(certs))
+			copy(intermediate, certs)
+		}
 	}
 
 	return
