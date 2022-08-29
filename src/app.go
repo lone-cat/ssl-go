@@ -5,74 +5,31 @@ import (
 	"crypto/x509"
 	"github.com/go-acme/lego/v4/challenge/http01"
 	"github.com/go-acme/lego/v4/lego"
-	"path/filepath"
 	"ssl/certs"
-	"ssl/certs/converters"
-	"ssl/certs/legoadapter"
-	"ssl/certs/managers"
-	"ssl/certs/storage"
-	"ssl/certs/validations"
 	"ssl/config"
+	"ssl/converters"
+	"ssl/legoadapter"
+	"ssl/storage"
+	"ssl/storage/memory"
+	"ssl/validations"
 	"strconv"
 	"time"
 )
 
-func app(config config.ConfigInterface) error {
-	certKeyStorage, err := storage.NewByteFile(config.GetStorage().GetCertificateKeyFullPath(), managers.DefaultPrivateKeyFilePermissions)
+func app(config config.ConfigInterface) (err error) {
+	bundleManager, err := GenerateMultiBundleManagerFromFormatsSlice[*rsa.PrivateKey](config.GetSaveFormats())
 	if err != nil {
-		return err
+		return
 	}
 
-	keyManager, err := managers.NewRSAPrivateKeyManager(certKeyStorage)
+	err = bundleManager.Sync()
 	if err != nil {
-		return err
+		return
 	}
 
-	var certManagers []managers.CertificateManager
-	certificateFullChainFilename := config.GetStorage().GetCertificatesFullChainFullPath()
-	if certificateFullChainFilename != `` {
-		certificateStorage, err := storage.NewByteFile(certificateFullChainFilename, managers.DefaultCertificateFilePermissions)
-		if err != nil {
-			return err
-		}
-		certManager, err := managers.NewCertificateChainManager(certificateStorage)
-		if err != nil {
-			return err
-		}
-		certManagers = append(certManagers, certManager)
-	}
-
-	splitCertificateFilename := config.GetStorage().GetCertificatesSplitCertificateFullPath()
-	intermediateStoragePattern := config.GetStorage().GetCertificatesSplitIntermediateFullPattern()
-	if splitCertificateFilename != `` && intermediateStoragePattern != `` {
-		certificateStorage, err := storage.NewByteFile(splitCertificateFilename, managers.DefaultCertificateFilePermissions)
-		if err != nil {
-			return err
-		}
-		intermediateStorage, err := storage.NewByteMultiFile(intermediateStoragePattern, managers.DefaultCertificateFilePermissions)
-		if err != nil {
-			return err
-		}
-		certManager, err := managers.NewCertificateSplitChainManager(certificateStorage, intermediateStorage)
-		if err != nil {
-			return err
-		}
-		certManagers = append(certManagers, certManager)
-	}
-
-	certManager, err := managers.NewCompositeCertificateManager(certManagers...)
+	certKey, certificateChain, err := bundleManager.bundleManagers[0].Get()
 	if err != nil {
-		return err
-	}
-
-	bundleManager, err := certs.NewBundleManager(keyManager, certManager)
-	if err != nil {
-		return err
-	}
-
-	certKey, certificateChain, err := bundleManager.GetBundle()
-	if err != nil {
-		return err
+		return
 	}
 
 	certificateExpireDuration := time.Duration(config.GetCertDaysLeftMin()) * 24 * time.Hour
@@ -81,7 +38,7 @@ func app(config config.ConfigInterface) error {
 		logger.Error(err)
 
 		certKey, certificateChain, err = getNewCertificateBundle(
-			filepath.Join(config.GetStorage().GetAppPath(), config.GetStorage().GetRoot(), config.GetStorage().GetAccountKey()),
+			config.GetAccountKeyFilename(),
 			config.GetKeyLength(),
 			config.GetEmail(),
 			config.GetDomains(),
@@ -93,7 +50,7 @@ func app(config config.ConfigInterface) error {
 		}
 
 		// TODO: order certificates in chain so cert is first, later trust chain in child-to-parent order
-		err = bundleManager.SetBundle(certKey, certificateChain)
+		err = bundleManager.Set(certKey, certificateChain)
 		if err != nil {
 			return err
 		}
@@ -108,6 +65,7 @@ func app(config config.ConfigInterface) error {
 		logger.Infof(`certificate bundle is ok`)
 		return NoChangeError
 	}
+
 }
 
 func getNewCertificateBundle(accountKeyFilename string, keyLength uint16, email string, domains []string, port int, useStagingCA bool) (key *rsa.PrivateKey, certificates []*x509.Certificate, err error) {
@@ -132,24 +90,23 @@ func getNewCertificateBundle(accountKeyFilename string, keyLength uint16, email 
 }
 
 func getOrGenerateAccountKey(accountKeyFilename string, keyLength uint16) (key *rsa.PrivateKey, err error) {
-	accountKeyStorage, err := storage.NewByteFile(accountKeyFilename, managers.DefaultPrivateKeyFilePermissions)
+	mgr, err := NewPrivateKeyManager[*rsa.PrivateKey](accountKeyFilename, 0600)
 	if err != nil {
 		return
 	}
 
-	accountKeyManager, err := managers.NewRSAPrivateKeyManager(accountKeyStorage)
+	key, err = mgr.Get()
 	if err != nil {
 		return
 	}
 
-	key = accountKeyManager.Get()
 	if key == nil || validations.GetRSAPrivateKeyLengthError(key, int(keyLength)) != nil {
 		key, err = certs.GeneratePrivateKey(keyLength)
 		if err != nil {
 			return
 		}
 
-		err = accountKeyManager.Set(key)
+		err = mgr.Set(key)
 		if err != nil {
 			return
 		}
@@ -186,8 +143,27 @@ func getCertificates(client *lego.Client, key *rsa.PrivateKey, domains []string,
 		return
 	}
 
-	certificates, err = converters.ConvertPemBytesToCertificates(certificateBytes)
+	byteStore := memory.NewByteMemory()
+	_ = byteStore.Save(certificateBytes)
+
+	multiByteStore, err := storage.NewByteSingleFileAdapter(byteStore)
 	if err != nil {
+		return
+	}
+
+	pemStore, err := storage.NewPemMultibyte(multiByteStore)
+	if err != nil {
+		return
+	}
+
+	pemBlocks, err := pemStore.Load()
+	if err != nil {
+		return
+	}
+
+	certificates, errs := converters.PEMBlocksToCertificates(pemBlocks)
+	if len(errs) > 0 {
+		err = errs[0]
 		return
 	}
 

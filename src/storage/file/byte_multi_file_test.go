@@ -1,4 +1,4 @@
-package storage
+package file
 
 import (
 	"os"
@@ -81,9 +81,13 @@ func TestByteMultiFile_Load(t *testing.T) {
 }
 
 func TestByteMultiFile_Save(t *testing.T) {
-	_, err := saveMultiFileStore.Load()
-	if err != NoData {
+	bts, err := saveMultiFileStore.Load()
+	if err != nil {
 		t.Fatal(err)
+	}
+
+	if len(bts) > 0 {
+		t.Fatal(`some bytes loaded`)
 	}
 
 	err = saveMultiFileStore.Save(tmpMultiReference)
@@ -121,9 +125,13 @@ func TestByteMultiFile_Save(t *testing.T) {
 }
 
 func TestByteMultiFile_Delete(t *testing.T) {
-	_, err := saveMultiFileStore.Load()
+	bts, err := saveMultiFileStore.Load()
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if len(bts) < 1 {
+		t.Fatal(`no bytes loaded`)
 	}
 
 	err = saveMultiFileStore.Delete()
@@ -131,8 +139,12 @@ func TestByteMultiFile_Delete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = saveMultiFileStore.Load()
-	if err != NoData {
+	bts, err = saveMultiFileStore.Load()
+	if err != nil {
 		t.Fatal(err)
+	}
+
+	if len(bts) > 0 {
+		t.Fatal(`some bytes read`)
 	}
 }

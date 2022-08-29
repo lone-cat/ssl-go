@@ -1,8 +1,9 @@
-package storage
+package file
 
 import (
 	"errors"
 	"os"
+	"ssl/storage"
 	"testing"
 )
 
@@ -61,7 +62,7 @@ func TestByteFile_Load(t *testing.T) {
 
 func TestByteFile_Save(t *testing.T) {
 	_, err := saveFileStore.Load()
-	if err != NoData {
+	if err != storage.EmptyNode {
 		t.Fatal(`test file exists`)
 	}
 

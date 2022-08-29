@@ -1,9 +1,10 @@
-package storage
+package file
 
 import (
 	"errors"
 	"os"
 	"path/filepath"
+	"ssl/storage"
 )
 
 type byteFile struct {
@@ -43,7 +44,7 @@ func (s *byteFile) Load() (bts []byte, err error) {
 	bts, err = os.ReadFile(s.filename)
 	if err != nil {
 		if os.IsNotExist(err) {
-			err = NoData
+			err = storage.EmptyNode
 		}
 	}
 

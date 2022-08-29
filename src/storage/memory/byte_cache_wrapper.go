@@ -1,15 +1,16 @@
-package storage
+package memory
 
 import (
 	"errors"
+	"ssl/storage"
 )
 
 type byteCacheWrapper struct {
 	cachedBytes    []byte
-	wrappedStorage Byte
+	wrappedStorage storage.Byte
 }
 
-func NewByteCacheWrapper(wrapStorage Byte) (*byteCacheWrapper, error) {
+func NewByteCacheWrapper(wrapStorage storage.Byte) (*byteCacheWrapper, error) {
 	if wrapStorage == nil {
 		return nil, errors.New(`nil storage passed`)
 	}
@@ -32,8 +33,15 @@ func (s *byteCacheWrapper) Load() (data []byte, err error) {
 		if err != nil {
 			return
 		}
-		s.cachedBytes = make([]byte, len(bts))
-		copy(s.cachedBytes, bts)
+
+		if bts != nil {
+			s.cachedBytes = make([]byte, len(bts))
+			copy(s.cachedBytes, bts)
+		}
+	}
+
+	if s.cachedBytes == nil {
+		return
 	}
 
 	data = make([]byte, len(s.cachedBytes))

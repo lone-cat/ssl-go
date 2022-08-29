@@ -113,7 +113,7 @@ func generateEnvConfigFileNames(env string) [2]string {
 	return filenames
 }
 
-func importFileToConfig(config EnvStore, path string) (imported bool, err error) {
+func importFileToConfig(config any, path string) (imported bool, err error) {
 	imported = false
 	var raw []byte
 

@@ -1,9 +1,7 @@
 package config
 
 import (
-	"errors"
 	"os"
-	"path/filepath"
 	"ssl/common"
 )
 
@@ -41,12 +39,7 @@ func Initialize(envVarKeyEnvironment, envVarKeyConfigFolder string) (config Conf
 		return
 	}
 
-	err = cleanFolders(conf)
-	if err != nil {
-		errs = append(errs, err)
-		logger.Infof("config final version:\n%s", conf)
-		return
-	}
+	conf.updateFormatFolders()
 
 	logger.Infof("config final version:\n%s", conf)
 	errs = conf.Validate()
@@ -56,18 +49,4 @@ func Initialize(envVarKeyEnvironment, envVarKeyConfigFolder string) (config Conf
 	}
 
 	return
-}
-
-func cleanFolders(conf *Config) error {
-	if conf == nil {
-		return errors.New(`nil config passed`)
-	}
-	if conf.Storage == nil {
-		return errors.New(`nil config.Storage`)
-	}
-
-	conf.Storage.AppPath = filepath.Clean(conf.Storage.AppPath)
-	conf.Storage.Root = filepath.Clean(conf.Storage.Root)
-
-	return nil
 }
